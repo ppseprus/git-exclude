@@ -16,6 +16,8 @@
 set -e
 
 version=0.1.0
+newline="
+"
 
 usage() {
   cat <<'USAGE'
@@ -45,6 +47,9 @@ pattern() {
   while [ "${p#./}" != "$p" ]; do p=${p#./}; done
   while [ "${p%/}" != "$p" ]; do p=${p%/}; done
   [ -n "$p" ] || die "'$1' names no file"
+  # grep -F reads each line of a pattern as a pattern of its own, so a
+  # newline would let one removal match lines it never wrote.
+  case $p in *"$newline"*) die "'$1' contains a newline" ;; esac
   case "/$p/" in
     //*) die "'$1' is an absolute path, use one relative to the current directory" ;;
     */../*) die "'$1' contains .., use a path below the current directory" ;;

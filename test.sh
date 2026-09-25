@@ -181,6 +181,13 @@ git exclude -- > /dev/null 2>&1
 check "-- with no paths exits 129" "$?" "129"
 
 fresh
+printf '/a\nhand\n' > .git/info/exclude
+git exclude remove "$(printf 'a\nhand')" > /dev/null 2>&1
+check "a newline in an argument is refused with 128" "$?" "128"
+check "a newline in an argument removes nothing" "$(excludes)" "/a
+hand"
+
+fresh
 git exclude "" a.txt > /dev/null 2>&1
 check "empty path is refused with 128" "$?" "128"
 git exclude a.txt "" > /dev/null 2>&1
