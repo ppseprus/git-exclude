@@ -84,6 +84,30 @@ git exclude remove 'a*b' > /dev/null
 check "glob characters are matched literally" "$(excludes)" "/axb"
 
 fresh
+printf '/old' > .git/info/exclude
+git exclude new.txt > /dev/null
+check "add after a line with no trailing newline keeps both lines" \
+  "$(excludes)" "/old
+/new.txt"
+
+fresh
+printf '/old\n' > .git/info/exclude
+git exclude new.txt > /dev/null
+check "add after a trailing newline inserts no blank line" \
+  "$(cat .git/info/exclude)" "/old
+/new.txt"
+
+fresh
+: > .git/info/exclude
+git exclude a.txt > /dev/null
+check "add to an empty exclude file writes one line" "$(cat .git/info/exclude)" "/a.txt"
+
+fresh
+rm .git/info/exclude
+git exclude a.txt > /dev/null
+check "add creates a missing exclude file" "$(cat .git/info/exclude)" "/a.txt"
+
+fresh
 git exclude -h > /dev/null 2>&1
 check "-h exits 129" "$?" "129"
 check "-h writes nothing" "$(excludes)" ""

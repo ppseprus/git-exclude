@@ -60,6 +60,10 @@ case "${1:-edit}" in
       if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
         echo "Already excluded '$line'"
       else
+        # Make sure we write to a new, empty line to avoid merging patterns
+        if [ -s "$excludes" ] && [ -n "$(tail -c1 "$excludes")" ]; then
+          echo >> "$excludes"
+        fi
         echo "$line" >> "$excludes"
         echo "Excluded '$line'"
       fi
