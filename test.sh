@@ -78,6 +78,14 @@ fresh
 check "trailing slash is stripped" "$(git exclude build/)" "Excluded '/build'"
 
 fresh
+check "repeated trailing slashes are stripped" "$(git exclude 'build//')" "Excluded '/build'"
+check "remove matches what a double slash wrote" \
+  "$(git exclude remove build)" "Removed '/build'"
+check "three trailing slashes are stripped" "$(git exclude 'build///')" "Excluded '/build'"
+git exclude // > /dev/null 2>&1
+check "a path of only slashes is refused with 128" "$?" "128"
+
+fresh
 git exclude a.txt > /dev/null
 check "second add reports Already excluded" "$(git exclude a.txt)" "Already excluded '/a.txt'"
 check "second add writes nothing" "$(excludes)" "/a.txt"

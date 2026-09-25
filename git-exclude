@@ -43,12 +43,13 @@ die() {
 pattern() {
   p=$1
   while [ "${p#./}" != "$p" ]; do p=${p#./}; done
+  while [ "${p%/}" != "$p" ]; do p=${p%/}; done
   [ -n "$p" ] || die "'$1' names no file"
   case "/$p/" in
     //*) die "'$1' is an absolute path, use one relative to the current directory" ;;
     */../*) die "'$1' contains .., use a path below the current directory" ;;
   esac
-  line="/$prefix${p%/}"
+  line="/$prefix$p"
 }
 
 case "$1" in

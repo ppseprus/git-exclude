@@ -16,7 +16,7 @@ Keeps your own notes and working files in a repository without committing them, 
 
 With no arguments, opens the exclude file in the editor git would use for a commit message, honouring **GIT_EDITOR**, **core.editor**, **VISUAL** and **EDITOR** in that order.
 
-Given paths, appends one pattern per path. Every pattern is anchored to the repository root, so running **git exclude build** inside *src/* writes */src/build* and never matches a *build* elsewhere in the tree. A leading *./* is dropped. Absolute paths and paths containing *..* are refused, since the pattern is written relative to the repository root and the path need not exist. A trailing slash is stripped; git treats the anchored pattern as matching either a file or a directory of that name. The path does not have to exist yet. A path that starts with **-**, or is named **remove** or **rm**, goes after **--**, as with git's own commands. Each path is reported as **Excluded** or **Already excluded**, and is never written twice.
+Given paths, appends one pattern per path. Every pattern is anchored to the repository root, so running **git exclude build** inside *src/* writes */src/build* and never matches a *build* elsewhere in the tree. A leading *./* is dropped. Absolute paths and paths containing *..* are refused, since the pattern is written relative to the repository root and the path need not exist. Trailing slashes are stripped; git treats the anchored pattern as matching either a file or a directory of that name. The path does not have to exist yet. A path that starts with **-**, or is named **remove** or **rm**, goes after **--**, as with git's own commands. Each path is reported as **Excluded** or **Already excluded**, and is never written twice.
 
 # COMMANDS
 
