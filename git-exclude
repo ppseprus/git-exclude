@@ -65,8 +65,8 @@ esac
 # An excludes file only has meaning against a work tree, and a directory
 # that is itself a bare repository can be committed into an ordinary one,
 # which would make its config, core.editor included, repository-supplied.
-[ "$(git rev-parse --is-bare-repository)" = false ] ||
-  die "this operation must be run in a work tree"
+bare=$(git rev-parse --is-bare-repository) || exit
+[ "$bare" = false ] || die "this operation must be run in a work tree"
 
 excludes="$(git rev-parse --git-common-dir)/info/exclude"
 prefix="$(git rev-parse --show-prefix)"
@@ -104,7 +104,12 @@ for p in "$@"; do
       # Written back into the same file rather than moved over it, so that
       # an exclude file someone symlinked elsewhere keeps its link and mode.
       grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
-      cat "$excludes.tmp" > "$excludes"
+      # In a subshell: a failing redirection is reported by the shell that
+      # runs it, so cat's own stderr redirect would not silence it.
+      ( cat "$excludes.tmp" > "$excludes" ) 2>/dev/null || {
+        rm -f "$excludes.tmp"
+        die "cannot write $excludes"
+      }
       rm -f "$excludes.tmp"
       printf "Removed '%s'\n" "$line"
     else

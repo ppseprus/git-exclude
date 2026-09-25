@@ -4,15 +4,19 @@
 .SH NAME
 git\-exclude \- manage .git/info/exclude from the command line
 .SH SYNOPSIS
-\f[B]git exclude\f[R] [\(en] <path>\&...
+\f[B]git exclude\f[R] [\-\-] <path>...
 .PD 0
 .P
 .PD
-\f[B]git exclude remove\f[R] [\(en] <path>\&...
+\f[B]git exclude\f[R] (\f[B]remove\f[R]|\f[B]rm\f[R]) [\-\-] <path>...
 .PD 0
 .P
 .PD
 \f[B]git exclude\f[R]
+.PD 0
+.P
+.PD
+\f[B]git exclude\f[R] [\f[B]\-h\f[R] | \f[B]\-\-version\f[R]]
 .SH DESCRIPTION
 Keeps your own notes and working files in a repository without
 committing them, by writing patterns to \f[I].git/info/exclude\f[R].
@@ -39,12 +43,16 @@ Trailing slashes are stripped; git treats the anchored pattern as
 matching either a file or a directory of that name.
 The path does not have to exist yet.
 A path that starts with \f[B]\-\f[R], or is named \f[B]remove\f[R] or
-\f[B]rm\f[R], goes after \f[B]\(en\f[R], as with git\(cqs own commands.
+\f[B]rm\f[R], goes after \f[B]\-\-\f[R], as with git\(aqs own commands.
+An empty path, a path containing a newline, an absolute path and a path
+containing \f[B]..\f[R] are each refused before anything is written, as
+is any use inside a bare repository, where an excludes file has no
+meaning.
 Each path is reported as \f[B]Excluded\f[R] or \f[B]Already
 excluded\f[R], and is never written twice.
 .SH COMMANDS
 .TP
-\f[B]remove\f[R] <path>\&..., \f[B]rm\f[R] <path>\&...
+\f[B]remove\f[R] <path>..., \f[B]rm\f[R] <path>...
 Removes the pattern that \f[B]git exclude\f[R] <path> would have
 written, by exact line match, and reports \f[B]Removed\f[R].
 Characters such as \f[B]*\f[R] and \f[B][\f[R] in a path are matched
@@ -52,12 +60,16 @@ literally.
 If the path is hidden by some broader pattern that was not written for
 it, nothing is removed and the command reports \f[B]Not excluded\f[R],
 rather than un\-excluding everything else that pattern covers.
+.PP
+Lines are compared byte for byte, so a pattern an editor wrote with a
+carriage return is not recognised as the same pattern and is neither
+deduplicated nor removed.
 .SH OPTIONS
 .TP
 \f[B]\-h\f[R]
 Prints a short usage summary.
 .TP
-\f[B]\(enversion\f[R]
+\f[B]\-\-version\f[R]
 Prints the version.
 .SH FILES
 .TP
@@ -71,8 +83,8 @@ The Git Ignores & Excludes extension for VS Code manages the same file
 from the explorer, and shows which rule ignores or excludes any file:
 https://marketplace.visualstudio.com/items?itemName=ppseprus.vscode\-git\-ignores\-and\-excludes
 .PP
-The idea comes from \(lq.gitignore Isn\(cqt the Only Way To Ignore Files
-in Git\(rq by Nelson Figueroa:
+The idea comes from \(dq.gitignore Isn\(aqt the Only Way To Ignore Files
+in Git\(dq by Nelson Figueroa:
 https://nelson.cloud/.gitignore\-isnt\-the\-only\-way\-to\-ignore\-files\-in\-git/
 .SH AUTHOR
 ppseprus

@@ -6,4 +6,5 @@
 #                             pre-commit hook for the staged version
 set -e
 src="${1:-$(dirname "$0")/git-exclude.1.md}"
-pandoc -s -f markdown -t man -M date="$(date "+%B %d, %Y")" "$src" -o "$(dirname "$0")/git-exclude.1"
+# -smart: without it pandoc turns every -- in the synopsis into an en dash.
+pandoc -s -f markdown-smart -t man -M date="$(LC_ALL=C date "+%B %d, %Y")" "$src" -o "$(dirname "$0")/git-exclude.1"

@@ -4,8 +4,9 @@
 # check, and the exit status is non-zero if any check failed.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
-tmp=$(mktemp -d "${TMPDIR:-/tmp}/git-exclude-test.XXXXXX")
-trap 'rm -rf "$tmp"' EXIT
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/git-exclude-test.XXXXXX") || exit 1
+# cd out first: a shell cannot delete the directory it sits in on Windows.
+trap 'cd / && rm -rf "$tmp"' EXIT
 
 # Keep the user's git configuration out of the picture, and make sure no
 # inherited repository variables can point the temporary repositories at a
@@ -29,13 +30,15 @@ check() {
     echo "ok $n - $1"
   else
     echo "not ok $n - $1"
-    printf '  expected: %s\n  got:      %s\n' "$3" "$2"
+    printf '%s\n' "$3" | sed 's/^/# expected: /'
+    printf '%s\n' "$2" | sed 's/^/# got:      /'
     failed=1
   fi
 }
 
 # A fresh repository with a src/ subdirectory, and cd into it.
 fresh() {
+  cd "$tmp" || exit 1
   rm -rf "$tmp/repo"
   mkdir -p "$tmp/repo/src"
   cd "$tmp/repo" || exit 1
@@ -127,6 +130,19 @@ git exclude remove a.txt > /dev/null
 check "remove keeps the file mode" "$(ls -l .git/info/exclude | cut -c1-10)" "-rw-------"
 check "remove leaves no temporary file" \
   "$(ls .git/info/ | grep -c 'exclude\.tmp')" "0"
+
+fresh
+git exclude a.txt b.txt > /dev/null
+chmod 444 .git/info/exclude
+git exclude remove a.txt > /dev/null 2>&1
+check "remove on an unwritable exclude file exits 128" "$?" "128"
+check "remove on an unwritable exclude file says so once" \
+  "$(git exclude remove a.txt 2>&1 | grep -c '^fatal:')" "1"
+check "remove on an unwritable exclude file leaves no temporary file" \
+  "$(ls .git/info/ | grep -c 'exclude\.tmp')" "0"
+check "remove on an unwritable exclude file changes nothing" "$(excludes)" "/a.txt
+/b.txt"
+chmod 644 .git/info/exclude
 
 fresh
 check "remove of an unknown path reports Not excluded" \
@@ -251,6 +267,8 @@ mkdir -p "$tmp/norepo"
 cd "$tmp/norepo" || exit 1
 git exclude a.txt > /dev/null 2>&1
 check "outside a repository exits 128 like git" "$?" "128"
+check "outside a repository says so once" \
+  "$(git exclude a.txt 2>&1 | grep -c '^fatal:')" "1"
 check "outside a repository -h still works" "$(git exclude -h > /dev/null 2>&1; echo $?)" "129"
 
 echo "1..$n"
