@@ -2,7 +2,7 @@
 
 # NAME
 
-git-exclude - manage .git/info/exclude from the command line
+git-exclude - manage .git/info/exclude from the terminal
 
 # SYNOPSIS
 
