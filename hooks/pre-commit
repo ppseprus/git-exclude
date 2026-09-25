@@ -1,0 +1,10 @@
+#!/bin/sh
+# When git-exclude.1.md is part of the commit, regenerate git-exclude.1 from
+# the staged version and stage the result, so the two never drift.
+set -e
+git diff --cached --quiet -- git-exclude.1.md && exit 0
+staged=$(mktemp "${TMPDIR:-/tmp}/git-exclude-man.XXXXXX")
+trap 'rm -f "$staged"' EXIT
+git show :git-exclude.1.md > "$staged"
+./generate-man.sh "$staged"
+git add git-exclude.1
