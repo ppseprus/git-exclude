@@ -41,8 +41,11 @@ Every clone has a local excludes file: `.git/info/exclude`. It lives with the re
 This also installs the man page, so `git exclude --help` and `git help exclude` work.
 
 ```sh
+brew trust --formula ppseprus/tap/git-exclude
 brew install ppseprus/tap/git-exclude
 ```
+
+_Note: Since version 6.0.0, Homebrew ignores formulae from a non-official tap until you explicitly `trust` it. Without this step the install fails outright rather than prompting. See [Tap Trust](https://docs.brew.sh/Tap-Trust)._
 
 ### On your PATH
 
