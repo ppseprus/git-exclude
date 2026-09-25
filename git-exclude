@@ -1,0 +1,67 @@
+#!/bin/sh
+# Keep your own notes and working files in a repository without committing
+# them, by managing .git/info/exclude from the command line. The Git Ignores
+# & Excludes VS Code extension does the same from the explorer.
+#
+# Put this directory on $PATH and git picks it up as `git exclude`.
+#
+#   git exclude                   open .git/info/exclude
+#   git exclude <path>...         exclude paths, anchored to the repository root
+#   git exclude remove <path>...  remove them again (rm works too)
+#   git exclude -h                show usage
+#   git exclude --version         show version
+#
+# `git exclude --help` never reaches this script: git turns it into
+# `git help exclude`, which reads the git-exclude(1) man page.
+set -e
+
+version=0.1.0
+
+usage() {
+  cat <<'USAGE'
+usage: git exclude [<path>...]
+   or: git exclude remove <path>...
+
+With no arguments, open .git/info/exclude in the editor.
+Paths are written anchored to the repository root, so `git exclude build`
+run inside src/ excludes /src/build. `remove` (or `rm`) removes exactly
+the line that was written, and nothing else.
+USAGE
+}
+
+case "$1" in
+  -h|--help) usage; exit 129 ;;
+  --version) echo "git-exclude version $version"; exit 0 ;;
+esac
+
+excludes="$(git rev-parse --git-common-dir)/info/exclude"
+prefix="$(git rev-parse --show-prefix)"
+mkdir -p "$(dirname "$excludes")"
+
+case "${1:-edit}" in
+  edit)
+    exec sh -c "$(git var GIT_EDITOR) \"\$1\"" - "$excludes" ;;
+  remove|rm)
+    shift
+    [ $# -gt 0 ] || { usage; exit 129; }
+    for p in "$@"; do
+      line="/$prefix${p%/}"
+      if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
+        grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
+        mv "$excludes.tmp" "$excludes"
+        echo "Removed '$line'"
+      else
+        echo "Not excluded '$line'"
+      fi
+    done ;;
+  *)
+    for p in "$@"; do
+      line="/$prefix${p%/}"
+      if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
+        echo "Already excluded '$line'"
+      else
+        echo "$line" >> "$excludes"
+        echo "Excluded '$line'"
+      fi
+    done ;;
+esac
