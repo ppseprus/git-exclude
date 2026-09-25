@@ -143,11 +143,33 @@ fresh
 git exclude -h > /dev/null 2>&1
 check "-h exits 129" "$?" "129"
 check "-h writes nothing" "$(excludes)" ""
-check "-h prints usage" "$(git exclude -h 2>&1 | head -1)" "usage: git exclude [<path>...]"
+check "-h prints usage" "$(git exclude -h 2>&1 | head -1)" "usage: git exclude [--] <path>..."
 
 fresh
 git exclude remove > /dev/null 2>&1
 check "remove with no paths exits 129" "$?" "129"
+git exclude -- > /dev/null 2>&1
+check "-- with no paths exits 129" "$?" "129"
+
+fresh
+git exclude "" a.txt > /dev/null 2>&1
+check "empty path is refused with 128" "$?" "128"
+git exclude a.txt "" > /dev/null 2>&1
+check "empty path anywhere means nothing is written" "$(excludes)" ""
+git exclude ./ > /dev/null 2>&1
+check "./ alone is refused with 128" "$?" "128"
+
+fresh
+check "edit is not a subcommand" "$(git exclude edit)" "Excluded '/edit'"
+check "-- lets a file named rm be excluded" "$(git exclude -- rm)" "Excluded '/rm'"
+check "-- lets a file named remove be removed" \
+  "$(git exclude -- remove > /dev/null && git exclude remove -- remove)" "Removed '/remove'"
+check "-- lets a path starting with - be excluded" "$(git exclude -- -x)" "Excluded '/-x'"
+git exclude --remove y.txt > /dev/null 2>&1
+check "an unknown option exits 129" "$?" "129"
+check "an unknown option writes nothing" "$(excludes)" "/edit
+/rm
+/-x"
 
 fresh
 version=$(sed -n 's/^version=//p' "$here/git-exclude")

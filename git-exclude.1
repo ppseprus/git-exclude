@@ -4,11 +4,15 @@
 .SH NAME
 git\-exclude \- manage .git/info/exclude from the command line
 .SH SYNOPSIS
-\f[B]git exclude\f[R] [<path>\&...]
+\f[B]git exclude\f[R] [\(en] <path>\&...
 .PD 0
 .P
 .PD
-\f[B]git exclude remove\f[R] <path>\&...
+\f[B]git exclude remove\f[R] [\(en] <path>\&...
+.PD 0
+.P
+.PD
+\f[B]git exclude\f[R]
 .SH DESCRIPTION
 Keeps your own notes and working files in a repository without
 committing them, by writing patterns to \f[I].git/info/exclude\f[R].
@@ -34,6 +38,8 @@ exist.
 A trailing slash is stripped; git treats the anchored pattern as
 matching either a file or a directory of that name.
 The path does not have to exist yet.
+A path that starts with \f[B]\-\f[R], or is named \f[B]remove\f[R] or
+\f[B]rm\f[R], goes after \f[B]\(en\f[R], as with git\(cqs own commands.
 Each path is reported as \f[B]Excluded\f[R] or \f[B]Already
 excluded\f[R], and is never written twice.
 .SH COMMANDS

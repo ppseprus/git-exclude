@@ -5,11 +5,11 @@
 #
 # Put this directory on $PATH and git picks it up as `git exclude`.
 #
-#   git exclude                   open .git/info/exclude
-#   git exclude <path>...         exclude paths, anchored to the repository root
-#   git exclude remove <path>...  remove them again (rm works too)
-#   git exclude -h                show usage
-#   git exclude --version         show version
+#   git exclude                        open .git/info/exclude
+#   git exclude [--] <path>...         exclude paths, anchored to the root
+#   git exclude remove [--] <path>...  remove them again (rm works too)
+#   git exclude -h                     show usage
+#   git exclude --version              show version
 #
 # `git exclude --help` never reaches this script: git turns it into
 # `git help exclude`, which reads the git-exclude(1) man page.
@@ -19,13 +19,15 @@ version=0.1.0
 
 usage() {
   cat <<'USAGE'
-usage: git exclude [<path>...]
-   or: git exclude remove <path>...
+usage: git exclude [--] <path>...
+   or: git exclude remove [--] <path>...
+   or: git exclude
 
-With no arguments, open .git/info/exclude in the editor.
-Paths are written anchored to the repository root, so `git exclude build`
-run inside src/ excludes /src/build. `remove` (or `rm`) removes exactly
-the line that was written, and nothing else.
+Paths are written to .git/info/exclude anchored to the repository root,
+so `git exclude build` run inside src/ excludes /src/build. `remove` (or
+`rm`) removes exactly the line that was written, and nothing else. With
+no arguments the file is opened in the editor. A path that starts with -
+or is named remove or rm goes after --.
 USAGE
 }
 
@@ -41,6 +43,7 @@ die() {
 pattern() {
   p=$1
   while [ "${p#./}" != "$p" ]; do p=${p#./}; done
+  [ -n "$p" ] || die "'$1' names no file"
   case "/$p/" in
     //*) die "'$1' is an absolute path, use one relative to the current directory" ;;
     */../*) die "'$1' contains .., use a path below the current directory" ;;
@@ -57,36 +60,46 @@ excludes="$(git rev-parse --git-common-dir)/info/exclude"
 prefix="$(git rev-parse --show-prefix)"
 mkdir -p "$(dirname "$excludes")"
 
-case "${1:-edit}" in
-  edit)
-    exec sh -c "$(git var GIT_EDITOR) \"\$1\"" - "$excludes" ;;
-  remove|rm)
-    shift
-    [ $# -gt 0 ] || { usage; exit 129; }
-    for p in "$@"; do pattern "$p"; done
-    for p in "$@"; do
-      pattern "$p"
-      if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
-        grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
-        mv "$excludes.tmp" "$excludes"
-        printf "Removed '%s'\n" "$line"
-      else
-        printf "Not excluded '%s'\n" "$line"
-      fi
-    done ;;
-  *)
-    for p in "$@"; do pattern "$p"; done
-    for p in "$@"; do
-      pattern "$p"
-      if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
-        printf "Already excluded '%s'\n" "$line"
-      else
-        # Make sure we write to a new, empty line to avoid merging patterns
-        if [ -s "$excludes" ] && [ -n "$(tail -c1 "$excludes")" ]; then
-          echo >> "$excludes"
-        fi
-        printf '%s\n' "$line" >> "$excludes"
-        printf "Excluded '%s'\n" "$line"
-      fi
-    done ;;
+[ $# -eq 0 ] && exec sh -c "$(git var GIT_EDITOR) \"\$1\"" - "$excludes"
+
+action=add
+case "$1" in
+  remove|rm) action=remove; shift ;;
 esac
+
+# There are no options beyond -h and --version, so an argument starting
+# with - is a mistake, unless it comes after --, as in git's own commands.
+options=1
+if [ "$1" = -- ]; then shift; options=; fi
+[ $# -gt 0 ] || { usage; exit 129; }
+for p in "$@"; do
+  if [ -n "$options" ]; then
+    case "$p" in -*) usage; exit 129 ;; esac
+  fi
+  pattern "$p"
+done
+
+for p in "$@"; do
+  pattern "$p"
+  if [ "$action" = remove ]; then
+    if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
+      grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
+      mv "$excludes.tmp" "$excludes"
+      printf "Removed '%s'\n" "$line"
+    else
+      printf "Not excluded '%s'\n" "$line"
+    fi
+  else
+    if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
+      printf "Already excluded '%s'\n" "$line"
+    else
+      # A file whose last byte is not a newline would glue the new
+      # pattern onto its last line. tail prints nothing when it is one.
+      if [ -s "$excludes" ] && [ -n "$(tail -c1 "$excludes")" ]; then
+        echo >> "$excludes"
+      fi
+      printf '%s\n' "$line" >> "$excludes"
+      printf "Excluded '%s'\n" "$line"
+    fi
+  fi
+done
