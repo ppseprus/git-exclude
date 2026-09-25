@@ -222,6 +222,24 @@ check "linked worktree writes to the common exclude file" \
   "$(cd "$tmp/wt" && git exclude w.txt)" "Excluded '/w.txt'"
 check "linked worktree line lands in the main repository" "$(excludes)" "/w.txt"
 
+rm -rf "$tmp/bare"
+git init -q --bare "$tmp/bare"
+cd "$tmp/bare" || exit 1
+git exclude a.txt > /dev/null 2>&1
+check "a bare repository refuses to exclude" "$?" "128"
+check "a bare repository says so" \
+  "$(git exclude a.txt 2>&1)" "fatal: this operation must be run in a work tree"
+git exclude > /dev/null 2>&1
+check "a bare repository refuses to open the editor" "$?" "128"
+check "a bare repository has nothing written to it" \
+  "$(grep -v '^#' "$tmp/bare/info/exclude" 2>/dev/null)" ""
+
+fresh
+git commit -q --allow-empty -m init
+git worktree add -q "$tmp/wt2"
+check "a linked worktree is not treated as bare" \
+  "$(cd "$tmp/wt2" && git exclude w2.txt)" "Excluded '/w2.txt'"
+
 mkdir -p "$tmp/norepo"
 cd "$tmp/norepo" || exit 1
 git exclude a.txt > /dev/null 2>&1

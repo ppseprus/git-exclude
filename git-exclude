@@ -57,6 +57,12 @@ case "$1" in
   --version) echo "git-exclude version $version"; exit 0 ;;
 esac
 
+# An excludes file only has meaning against a work tree, and a directory
+# that is itself a bare repository can be committed into an ordinary one,
+# which would make its config, core.editor included, repository-supplied.
+[ "$(git rev-parse --is-bare-repository)" = false ] ||
+  die "this operation must be run in a work tree"
+
 excludes="$(git rev-parse --git-common-dir)/info/exclude"
 prefix="$(git rev-parse --show-prefix)"
 mkdir -p "$(dirname "$excludes")"
