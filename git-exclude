@@ -90,8 +90,11 @@ for p in "$@"; do
   pattern "$p"
   if [ "$action" = remove ]; then
     if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
+      # Written back into the same file rather than moved over it, so that
+      # an exclude file someone symlinked elsewhere keeps its link and mode.
       grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
-      mv "$excludes.tmp" "$excludes"
+      cat "$excludes.tmp" > "$excludes"
+      rm -f "$excludes.tmp"
       printf "Removed '%s'\n" "$line"
     else
       printf "Not excluded '%s'\n" "$line"

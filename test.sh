@@ -108,6 +108,23 @@ check "remove of a path under a broader pattern reports Not excluded" \
 check "the broader pattern is left alone" "$(excludes)" "/build"
 
 fresh
+git exclude a.txt b.txt > /dev/null
+mv .git/info/exclude "$tmp/shared"
+ln -s "$tmp/shared" .git/info/exclude
+git exclude remove a.txt > /dev/null
+check "remove keeps a symlinked exclude file a symlink" \
+  "$([ -L .git/info/exclude ] && echo yes)" "yes"
+check "remove writes through the symlink" "$(grep -v '^#' "$tmp/shared")" "/b.txt"
+
+fresh
+chmod 600 .git/info/exclude
+git exclude a.txt > /dev/null
+git exclude remove a.txt > /dev/null
+check "remove keeps the file mode" "$(ls -l .git/info/exclude | cut -c1-10)" "-rw-------"
+check "remove leaves no temporary file" \
+  "$(ls .git/info/ | grep -c 'exclude\.tmp')" "0"
+
+fresh
 check "remove of an unknown path reports Not excluded" \
   "$(git exclude remove nope.txt)" "Not excluded '/nope.txt'"
 
