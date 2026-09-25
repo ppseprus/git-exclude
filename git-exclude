@@ -49,23 +49,23 @@ case "${1:-edit}" in
       if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
         grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
         mv "$excludes.tmp" "$excludes"
-        echo "Removed '$line'"
+        printf "Removed '%s'\n" "$line"
       else
-        echo "Not excluded '$line'"
+        printf "Not excluded '%s'\n" "$line"
       fi
     done ;;
   *)
     for p in "$@"; do
       line="/$prefix${p%/}"
       if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
-        echo "Already excluded '$line'"
+        printf "Already excluded '%s'\n" "$line"
       else
         # Make sure we write to a new, empty line to avoid merging patterns
         if [ -s "$excludes" ] && [ -n "$(tail -c1 "$excludes")" ]; then
           echo >> "$excludes"
         fi
-        echo "$line" >> "$excludes"
-        echo "Excluded '$line'"
+        printf '%s\n' "$line" >> "$excludes"
+        printf "Excluded '%s'\n" "$line"
       fi
     done ;;
 esac

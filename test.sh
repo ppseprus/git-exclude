@@ -87,6 +87,13 @@ git exclude remove 'a*b' > /dev/null
 check "glob characters are matched literally" "$(excludes)" "/axb"
 
 fresh
+check "backslashes are written literally" "$(git exclude 'a\tb')" "Excluded '/a\\tb'"
+check "backslashes are stored literally" "$(excludes)" '/a\tb'
+check "backslashes do not defeat the duplicate check" \
+  "$(git exclude 'a\tb')" "Already excluded '/a\\tb'"
+check "backslashes do not defeat remove" "$(git exclude remove 'a\tb')" "Removed '/a\\tb'"
+
+fresh
 printf '/old' > .git/info/exclude
 git exclude new.txt > /dev/null
 check "add after a line with no trailing newline keeps both lines" \
