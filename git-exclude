@@ -61,7 +61,13 @@ excludes="$(git rev-parse --git-common-dir)/info/exclude"
 prefix="$(git rev-parse --show-prefix)"
 mkdir -p "$(dirname "$excludes")"
 
-[ $# -eq 0 ] && exec sh -c "$(git var GIT_EDITOR) \"\$1\"" - "$excludes"
+if [ $# -eq 0 ]; then
+  # Resolved first: an empty result inside the sh -c string would leave the
+  # exclude file itself as the command, and set -e would not catch it.
+  editor=$(git var GIT_EDITOR) || exit
+  [ -n "$editor" ] || die "no editor configured, set GIT_EDITOR or core.editor"
+  exec sh -c "$editor \"\$1\"" - "$excludes"
+fi
 
 action=add
 case "$1" in

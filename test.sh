@@ -188,6 +188,13 @@ check "no arguments opens the exclude file in GIT_EDITOR" \
   "$(GIT_EDITOR='echo EDITING' git exclude)" "EDITING $(git rev-parse --git-common-dir)/info/exclude"
 
 fresh
+chmod +x .git/info/exclude
+GIT_EDITOR= git exclude > /dev/null 2>&1
+check "an empty editor is refused with 128" "$?" "128"
+check "an empty editor does not run the exclude file" \
+  "$(GIT_EDITOR= git exclude 2>&1)" "fatal: no editor configured, set GIT_EDITOR or core.editor"
+
+fresh
 git commit -q --allow-empty -m init
 git worktree add -q "$tmp/wt"
 check "linked worktree writes to the common exclude file" \
