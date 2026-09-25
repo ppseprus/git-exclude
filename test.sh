@@ -7,8 +7,11 @@ here=$(cd "$(dirname "$0")" && pwd)
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/git-exclude-test.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 
-# Keep the user's git configuration out of the picture.
+# Keep the user's git configuration out of the picture, and make sure no
+# inherited repository variables can point the temporary repositories at a
+# real one.
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com
 export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 PATH="$here:$PATH"
