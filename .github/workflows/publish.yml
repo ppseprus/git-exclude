@@ -1,0 +1,71 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  tap:
+    name: bump the formula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check that the tag matches version= in the script
+        run: |
+          version="v$(sed -n 's/^version=//p' git-exclude)"
+          if [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "Release tag $GITHUB_REF_NAME does not match version=$version in git-exclude." >&2
+            exit 1
+          fi
+
+      - name: Check that the CHANGELOG has a section for it
+        run: |
+          if ! grep -q "^## ${GITHUB_REF_NAME#v}$" CHANGELOG.md; then
+            echo "CHANGELOG.md has no '## ${GITHUB_REF_NAME#v}' section." >&2
+            exit 1
+          fi
+
+      - name: Run the suite
+        run: sh ./test.sh
+
+      - name: Hash the release tarball
+        id: tarball
+        run: |
+          url="https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz"
+          curl -fLo release.tar.gz "$url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(sha256sum release.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Confirm the tarball carries what the formula installs
+        run: |
+          mkdir extracted
+          tar xzf release.tar.gz -C extracted --strip-components=1
+          test -f extracted/git-exclude
+          test -f extracted/git-exclude.1
+          diff extracted/git-exclude git-exclude
+          diff extracted/git-exclude.1 git-exclude.1
+
+      - name: Check out the tap
+        uses: actions/checkout@v5
+        with:
+          repository: ppseprus/homebrew-tap
+          token: ${{ secrets.TAP_TOKEN }}
+          path: tap
+
+      - name: Bump the formula
+        working-directory: tap
+        run: |
+          sed -i 's|^  url .*|  url "${{ steps.tarball.outputs.url }}"|' Formula/git-exclude.rb
+          sed -i 's|^  sha256 .*|  sha256 "${{ steps.tarball.outputs.sha256 }}"|' Formula/git-exclude.rb
+          grep -E '^  (url|sha256) ' Formula/git-exclude.rb
+          # A formula bumped by hand leaves nothing to commit, and `git commit`
+          # would fail the job over it.
+          if git diff --quiet Formula/git-exclude.rb; then
+            echo "The formula already points at ${GITHUB_REF_NAME}; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "git-exclude ${GITHUB_REF_NAME#v}"
+          git push

@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, ${{ matrix.shell }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS /bin/sh is bash in POSIX mode; Ubuntu's is dash. They differ
+          # in ways this script has been bitten by, so run both.
+          - os: macos-latest
+            shell: sh
+          - os: ubuntu-latest
+            shell: sh
+          - os: ubuntu-latest
+            shell: dash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run the suite
+        run: ${{ matrix.shell }} ./test.sh
+
+  lint:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Lint every shell script
+        run: shellcheck --shell=sh git-exclude test.sh generate-man.sh hooks/pre-commit hooks/pre-push
+
+  man:
+    name: man page
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install mandoc
+        run: sudo apt-get update && sudo apt-get install -y mandoc
+      - name: Lint the committed page
+        run: mandoc -T lint git-exclude.1
+      # Not a regeneration diff: a different pandoc emits different roff, so
+      # that would fail whenever the runner image moves. These are the two
+      # ways the page has actually gone wrong.
+      - name: No smart punctuation in place of --
+        run: |
+          if grep -q '\\(en\|\\(em\|\xe2\x80\x93\|\xe2\x80\x94' git-exclude.1; then
+            echo "::error::git-exclude.1 contains a dash pandoc rewrote; generate with -f markdown-smart"
+            exit 1
+          fi
+      # roff escapes hyphens, so the name appears as git\-exclude.
+      - name: Page is not empty and names the command
+        run: |
+          test -s git-exclude.1
+          grep -q 'git\\-exclude' git-exclude.1
+
+  version:
+    name: tag matches version=
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compare the tag with the script and the changelog
+        run: |
+          tag=${GITHUB_REF#refs/tags/v}
+          script=$(sed -n 's/^version=//p' git-exclude)
+          echo "tag=$tag script=$script"
+          [ "$tag" = "$script" ] || {
+            echo "::error::tag v$tag does not match version=$script in git-exclude"
+            exit 1
+          }
+          grep -q "^## $tag$" CHANGELOG.md || {
+            echo "::error::CHANGELOG.md has no '## $tag' section"
+            exit 1
+          }

@@ -1,5 +1,7 @@
 # git-exclude
 
+[![CI](https://github.com/ppseprus/git-exclude/actions/workflows/ci.yml/badge.svg)](https://github.com/ppseprus/git-exclude/actions/workflows/ci.yml)
+
 Keep your own notes and working files in the repo without committing them. Manage `.git/info/exclude` from the terminal, as `git exclude`.
 
 ## Usage
