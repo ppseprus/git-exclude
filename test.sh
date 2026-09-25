@@ -127,9 +127,10 @@ fresh
 chmod 600 .git/info/exclude
 git exclude a.txt > /dev/null
 git exclude remove a.txt > /dev/null
-check "remove keeps the file mode" "$(ls -l .git/info/exclude | cut -c1-10)" "-rw-------"
+check "remove keeps the file mode" \
+  "$(find .git/info/exclude -perm 600)" ".git/info/exclude"
 check "remove leaves no temporary file" \
-  "$(ls .git/info/ | grep -c 'exclude\.tmp')" "0"
+  "$([ -e .git/info/exclude.tmp ] && echo present || echo absent)" "absent"
 
 fresh
 git exclude a.txt b.txt > /dev/null
@@ -139,7 +140,7 @@ check "remove on an unwritable exclude file exits 128" "$?" "128"
 check "remove on an unwritable exclude file says so once" \
   "$(git exclude remove a.txt 2>&1 | grep -c '^fatal:')" "1"
 check "remove on an unwritable exclude file leaves no temporary file" \
-  "$(ls .git/info/ | grep -c 'exclude\.tmp')" "0"
+  "$([ -e .git/info/exclude.tmp ] && echo present || echo absent)" "absent"
 check "remove on an unwritable exclude file changes nothing" "$(excludes)" "/a.txt
 /b.txt"
 chmod 644 .git/info/exclude
@@ -233,10 +234,10 @@ check "no arguments opens the exclude file in GIT_EDITOR" \
 
 fresh
 chmod +x .git/info/exclude
-GIT_EDITOR= git exclude > /dev/null 2>&1
+GIT_EDITOR='' git exclude > /dev/null 2>&1
 check "an empty editor is refused with 128" "$?" "128"
 check "an empty editor does not run the exclude file" \
-  "$(GIT_EDITOR= git exclude 2>&1)" "fatal: no editor configured, set GIT_EDITOR or core.editor"
+  "$(GIT_EDITOR='' git exclude 2>&1)" "fatal: no editor configured, set GIT_EDITOR or core.editor"
 
 fresh
 git commit -q --allow-empty -m init
