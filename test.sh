@@ -12,6 +12,10 @@ trap 'rm -rf "$tmp"' EXIT
 # real one.
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY
+
+# Stop git's upward search at the temporary directory, so a TMPDIR that
+# happens to sit inside a repository cannot stand in for the ones here.
+export GIT_CEILING_DIRECTORIES="$tmp"
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com
 export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 PATH="$here:$PATH"
