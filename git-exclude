@@ -29,6 +29,25 @@ the line that was written, and nothing else.
 USAGE
 }
 
+die() {
+  printf 'fatal: %s\n' "$1" >&2
+  exit 128
+}
+
+# Turn a path argument into the anchored pattern in $line. Leading ./
+# segments are dropped. Absolute paths and paths containing .. are refused,
+# because the pattern is written relative to the repository root and the
+# path need not exist, so there is nothing reliable to resolve them against.
+pattern() {
+  p=$1
+  while [ "${p#./}" != "$p" ]; do p=${p#./}; done
+  case "/$p/" in
+    //*) die "'$1' is an absolute path, use one relative to the current directory" ;;
+    */../*) die "'$1' contains .., use a path below the current directory" ;;
+  esac
+  line="/$prefix${p%/}"
+}
+
 case "$1" in
   -h|--help) usage; exit 129 ;;
   --version) echo "git-exclude version $version"; exit 0 ;;
@@ -44,8 +63,9 @@ case "${1:-edit}" in
   remove|rm)
     shift
     [ $# -gt 0 ] || { usage; exit 129; }
+    for p in "$@"; do pattern "$p"; done
     for p in "$@"; do
-      line="/$prefix${p%/}"
+      pattern "$p"
       if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
         grep -vxF -- "$line" "$excludes" > "$excludes.tmp" || true
         mv "$excludes.tmp" "$excludes"
@@ -55,8 +75,9 @@ case "${1:-edit}" in
       fi
     done ;;
   *)
+    for p in "$@"; do pattern "$p"; done
     for p in "$@"; do
-      line="/$prefix${p%/}"
+      pattern "$p"
       if grep -qxF -- "$line" "$excludes" 2>/dev/null; then
         printf "Already excluded '%s'\n" "$line"
       else

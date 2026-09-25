@@ -27,6 +27,10 @@ Given paths, appends one pattern per path.
 Every pattern is anchored to the repository root, so running \f[B]git
 exclude build\f[R] inside \f[I]src/\f[R] writes \f[I]/src/build\f[R] and
 never matches a \f[I]build\f[R] elsewhere in the tree.
+A leading \f[I]./\f[R] is dropped.
+Absolute paths and paths containing \f[I]..\f[R] are refused, since the
+pattern is written relative to the repository root and the path need not
+exist.
 A trailing slash is stripped; git treats the anchored pattern as
 matching either a file or a directory of that name.
 The path does not have to exist yet.

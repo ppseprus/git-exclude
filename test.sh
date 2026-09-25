@@ -46,11 +46,33 @@ excludes() {
 fresh
 check "add from root reports Excluded" "$(git exclude a.txt)" "Excluded '/a.txt'"
 check "add from root writes anchored line" "$(excludes)" "/a.txt"
+check "add from root actually ignores the file" "$(git check-ignore -q a.txt; echo $?)" "0"
 
 fresh
 check "add from subdirectory prefixes the path" \
   "$(cd src && git exclude b.txt)" "Excluded '/src/b.txt'"
 check "add from subdirectory writes prefixed line" "$(excludes)" "/src/b.txt"
+check "add from subdirectory actually ignores the file" \
+  "$(git check-ignore -q src/b.txt; echo $?)" "0"
+
+fresh
+check "leading ./ is dropped" "$(git exclude ./a.txt)" "Excluded '/a.txt'"
+check "repeated leading ./ is dropped" "$(git exclude ././b.txt)" "Excluded '/b.txt'"
+check "leading ./ is dropped from a subdirectory" \
+  "$(cd src && git exclude ./c.txt)" "Excluded '/src/c.txt'"
+check "dropped ./ still ignores the file" "$(git check-ignore -q src/c.txt; echo $?)" "0"
+
+fresh
+git exclude "$tmp/repo/a.txt" > /dev/null 2>&1
+check "absolute path is refused with 128" "$?" "128"
+check "absolute path is reported as fatal" \
+  "$(git exclude /x 2>&1 | cut -d' ' -f1)" "fatal:"
+git exclude ../a.txt > /dev/null 2>&1
+check "path with .. is refused with 128" "$?" "128"
+git exclude a/../b.txt > /dev/null 2>&1
+check "path with .. in the middle is refused with 128" "$?" "128"
+git exclude good.txt /bad.txt > /dev/null 2>&1
+check "a refused path means nothing is written" "$(excludes)" ""
 
 fresh
 check "trailing slash is stripped" "$(git exclude build/)" "Excluded '/build'"
